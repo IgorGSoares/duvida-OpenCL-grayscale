@@ -43,21 +43,10 @@ int main() {
 	}
 	printf("Loaded image with a width of %dpx, a height of %dpx and %d channels\n", widthB, heightB, channelsB);
 
-	//write image
-	//stbi_write_png("t2.png", width, height, channels, img, width * channels);
-	
-	//load foreground
-	/*int widthF, heightF, channelsF;
-	unsigned char *foreground = stbi_load("c1.jpg", &widthF, &heightF, &channelsF, 0);
-	if (foreground == NULL) {
-		printf("Error in loading the image\n");
-		exit(1);
-	}
-	printf("Loaded image with a width of %dpx, a height of %dpx and %d channels\n", widthF, heightF, channelsF);*/
-
 
 	// Convert the input image to gray
 	size_t img_size = widthB * heightB * channelsB;
+	printf("Image size =  %d\n", img_size);
 	int gray_channels = channelsB == 4 ? 2 : 1;
 	size_t gray_img_size = widthB * heightB * gray_channels;
 	unsigned char *gray_img = new unsigned char[gray_img_size];
@@ -65,6 +54,7 @@ int main() {
 		printf("Unable to allocate memory for the gray image.\n");
 		exit(1);
 	}
+	printf("Loaded image with a width of %dpx, a height of %dpx, %dpx channels and %d size\n", widthB, heightB, channelsB, gray_img_size);
 
 
 	/*for (unsigned char *p = background, *pg = gray_img; p != background + img_size; p += channelsB, pg += gray_channels)
@@ -75,15 +65,23 @@ int main() {
 		}
 	}*/
 
+	/*char* str = new char[gray_img_size];
+	memset(str, *gray_img, gray_img_size);
+	puts(str);*/
+
 	cl_int err = 0;
 	cl::Buffer entrada(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(char)*img_size, background, &err);
-	cl::Buffer saida(context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, sizeof(char)*gray_img_size, gray_img, &err);
+	cl::Buffer saida(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(char)*gray_img_size, gray_img, &err);
+	/*cl::Buffer canal1(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int), &channelsB, &err);
+	cl::Buffer canal2(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int), &gray_channels, &err);*/
 	cl::Kernel kernel(program, "ProcessArray");
 	err = kernel.setArg(0, entrada);
 	err = kernel.setArg(1, saida);
+	/*err = kernel.setArg(2, canal1);
+	err = kernel.setArg(3, canal2);*/
 
 	cl::CommandQueue queue(context, device);
-	queue.enqueueTask(kernel);
+	//queue.enqueueTask(kernel);
 	//queue.enqueueWriteBuffer(entrada, CL_TRUE, 0, sizeof(char)*img_size, background);
 	/*queue.enqueueReadBuffer(memBuf, GL_TRUE, 0, sizeof(buf), buf);*/
 	err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(img_size));
@@ -92,14 +90,13 @@ int main() {
 	cl::finish();
 
 	//escrever background
-	//stbi_write_jpg("c3.jpg", widthF, heightF, channelsF, foreground, 100);
-	//stbi_image_free(foreground);
-	stbi_write_jpg("gray.jpg", widthB, heightB, gray_channels, gray_img, 100);
+	stbi_write_jpg("gray4.jpg", widthB, heightB, gray_channels, gray_img, 100);
 	stbi_image_free(background);
+	stbi_image_free(gray_img);
 
 	//std::cout << buf;
-	std::cin.get();
-
+	/*std::cin.get();*/
+	return 0;
 }
 
 
